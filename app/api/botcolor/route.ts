@@ -1,6 +1,6 @@
 import { HfInference } from "@huggingface/inference";
 import { HuggingFaceStream } from "ai";
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 
 const Hf = new HfInference(process.env.HF_TOKEN);
