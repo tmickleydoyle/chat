@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Chatbot Component
 
-## Getting Started
+This is a React component for an AI chatbot interface with various features and customization options.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Real-time chat interface with user and bot messages
+- Message reactions (like/dislike)
+- Markdown rendering for messages
+- Customizable bot text box color
+- Error handling and toast notifications
+- Automatic scroll to bottom
+- Poor conversation detection with customer support option
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This component uses the following main dependencies:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- React
+- date-fns
+- lucide-react
+- react-markdown
+- remark-gfm
+- shadcn/ui components
 
-## Learn More
+Make sure to install these dependencies before using the component.
 
-To learn more about Next.js, take a look at the following resources:
+## Usage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To use this component in your React application:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Import the component:
 
-## Deploy on Vercel
+   ```jsx
+   import { AiChatbot } from './path/to/AiChatbot';
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Use the component in your JSX:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```jsx
+   <AiChatbot />
+   ```
+
+## Customization
+
+The chatbot interface allows users to customize the color of the bot's text box. This is done through a settings popover that sends a color prompt to a backend API.
+
+## API Endpoints
+
+The component expects two API endpoints:
+
+1. `/api/chat`: For sending and receiving chat messages
+2. `/api/botcolor`: For fetching a custom color for the bot's text box
+
+Ensure these endpoints are set up in your backend to handle the respective requests.
+
+## Styling
+
+The component uses Tailwind CSS classes for styling. Make sure your project is set up with Tailwind CSS to maintain the intended appearance.
