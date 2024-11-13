@@ -13,7 +13,6 @@ export async function POST(req: NextRequest,) {
     inputs: `<|system|>\nYou are a color design app that returns a hex color based on a /user/ /input/</s>\n<|user|>\n${prompt}. Only return hex color code.</s>\n<|assistant|>`,
     parameters: {
       max_new_tokens: 250,
-      // @ts-ignore (this is a valid parameter specifically in OpenAssistant models)
       typical_p: 0.2,
       repetition_penalty: 1,
       truncate: 100,
