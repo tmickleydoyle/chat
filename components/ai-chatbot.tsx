@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-
 import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -32,26 +31,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-
-interface AiChatbotProps {
-  title?: string;
-  finetune?: boolean;
-}
-
-const defaultColor = "lightgrey";
-
-type Reaction = "like" | "dislike" | null;
-
-type Message = {
-  role: "user" | "bot" | "system";
-  content: string;
-  timestamp: Date;
-  media?: {
-    type: "image" | "link";
-    url: string;
-  };
-  reaction?: Reaction;
-};
+import { AiChatbotProps, Message } from "../app/types/index";
+import {
+  scrollToBottom,
+  formatMessages,
+  handleReaction,
+} from "../app/utils/chat-utils";
+import { useColorManagement } from "../hooks/use-color-management";
 
 const sampleMessages: Message[] = [
   {
@@ -68,74 +54,21 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
   const [thumbsDownCount, setThumbsDownCount] = useState(0);
   const [isPoorConversation, setIsPoorConversation] = useState(false);
   const [showSupportOption, setShowSupportOption] = useState(false);
-  const [robotTextBoxColor, setRobotTextBoxColor] = useState("bg-secondary");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputColor, setInputColor] = React.useState("");
-  const [popoverColor, setPopoverColor] = React.useState(defaultColor);
-  const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
 
-  const handleColorChange = (value: string) => {
-    // setApiColor("");
-    setInputColor(value);
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  let retryCount = 0;
-  const fetchBotColor = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/botcolor", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt: inputColor }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch color");
-      }
-      const data = await response.text();
-      const colorData = data
-        .replace(/\d+:"(.+?)"/g, "$1")
-        .replace(/\\/g, "")
-        .replace(/\n/g, "");
-      const hexColorMatch = colorData.match(/#[0-9A-Fa-f]{6}/);
-      const hexColor = hexColorMatch?.[0];
-
-      if (hexColor) {
-        setRobotTextBoxColor(hexColor);
-        setPopoverColor(hexColor);
-        retryCount = 0;
-      } else if (retryCount < 5) {
-        retryCount++;
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        return fetchBotColor();
-      } else {
-        setRobotTextBoxColor(defaultColor);
-        setPopoverColor(defaultColor);
-        retryCount = 0;
-      }
-    } catch (error) {
-      console.error("Error fetching color:", error);
-      setPopoverColor(defaultColor);
-      toast({
-        title: "Error",
-        description: "Failed to fetch color. Using default light grey.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    inputColor,
+    popoverColor,
+    isLoading,
+    handleColorChange,
+    fetchBotColor,
+  } = useColorManagement();
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(messagesEndRef);
   }, [messages]);
 
   useEffect(() => {
@@ -167,31 +100,17 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
     setIsTyping(true);
 
     try {
-      const formattedMessages = [
-        ...messages.map((msg) => ({
-          role: msg.role === "bot" ? "assistant" : msg.role,
-          content: msg.content,
-        })),
-        { role: "user", content: input },
-      ];
-      let response;
-      if (finetune) {
-        response = await fetch("/api/chat", {
+      const formattedMessages = formatMessages(messages, input);
+      const response = await fetch(
+        finetune ? "/api/chat" : "/api/chat-original",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ prompt: formattedMessages }),
-        });
-      } else {
-        response = await fetch("/api/chat-original", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ prompt: formattedMessages }),
-        });
-      }
+        }
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch bot response");
       }
@@ -215,26 +134,7 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
   };
 
   const handleInputFocus = () => {
-    scrollToBottom();
-  };
-
-  const handleReaction = (index: number, reaction: Reaction) => {
-    setMessages((prevMessages) =>
-      prevMessages.map((msg, i) => {
-        if (i === index) {
-          if (msg.reaction === "dislike" && reaction !== "dislike") {
-            setThumbsDownCount((prev) => Math.max(0, prev - 1));
-          } else if (reaction === "dislike" && msg.reaction !== "dislike") {
-            setThumbsDownCount((prev) => prev + 1);
-          }
-          return {
-            ...msg,
-            reaction: msg.reaction === reaction ? null : reaction,
-          };
-        }
-        return msg;
-      })
-    );
+    scrollToBottom(messagesEndRef);
   };
 
   return (
@@ -271,7 +171,6 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
                     aria-label="Enter color"
                     className="w-[95%]"
                   />
-                  {/* <div className="grid gap-2 w-[100%] max-w-[800px] mx-2"> */}
                   <Button
                     onClick={fetchBotColor}
                     disabled={isLoading}
@@ -279,7 +178,6 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
                   >
                     {isLoading ? "Loading..." : "Fetch Color"}
                   </Button>
-                  {/* </div> */}
                 </div>
               </div>
             </PopoverContent>
@@ -309,7 +207,7 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
               <div
                 className={`rounded-lg p-3 max-w-[80%] ${
                   message.role === "bot"
-                    ? `${robotTextBoxColor} ml-0 mr-auto`
+                    ? `${popoverColor} ml-0 mr-auto`
                     : message.role === "user"
                     ? "bg-light-grey text-primary-foreground ml-auto mr-0"
                     : "bg-yellow-100 text-yellow-800 mx-auto"
@@ -317,15 +215,12 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
                 style={{
                   backgroundColor:
                     message.role === "bot"
-                      ? popoverColor || defaultColor
+                      ? popoverColor
                       : message.role === "user"
                       ? "lightgrey"
                       : undefined,
                   color: "black",
-                  borderColor:
-                    (message.role === "bot" && popoverColor) || defaultColor
-                      ? inputColor
-                      : undefined,
+                  borderColor: message.role === "bot" ? inputColor : undefined,
                 }}
               >
                 {message.role === "system" && (
@@ -344,7 +239,15 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleReaction(index, "like")}
+                        onClick={() =>
+                          handleReaction(
+                            messages,
+                            index,
+                            "like",
+                            setMessages,
+                            setThumbsDownCount
+                          )
+                        }
                         className={`p-1 ${
                           message.reaction === "like"
                             ? "text-green-500"
@@ -356,7 +259,15 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleReaction(index, "dislike")}
+                        onClick={() =>
+                          handleReaction(
+                            messages,
+                            index,
+                            "dislike",
+                            setMessages,
+                            setThumbsDownCount
+                          )
+                        }
                         className={`p-1 ${
                           message.reaction === "dislike"
                             ? "text-red-500"
