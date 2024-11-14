@@ -33,6 +33,11 @@ import {
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
+interface AiChatbotProps {
+  title?: string;
+  finetune?: boolean;
+}
+
 const defaultColor = "lightgrey";
 
 type Reaction = "like" | "dislike" | null;
@@ -56,7 +61,7 @@ const sampleMessages: Message[] = [
   },
 ];
 
-export function AiChatbot() {
+export function AiChatbot({ title, finetune }: AiChatbotProps) {
   const [messages, setMessages] = useState<Message[]>(sampleMessages);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -169,13 +174,24 @@ export function AiChatbot() {
         })),
         { role: "user", content: input },
       ];
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt: formattedMessages }),
-      });
+      let response;
+      if (finetune) {
+        response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt: formattedMessages }),
+        });
+      } else {
+        response = await fetch("/api/chat-original", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt: formattedMessages }),
+        });
+      }
       if (!response.ok) {
         throw new Error("Failed to fetch bot response");
       }
@@ -226,7 +242,7 @@ export function AiChatbot() {
       className={`w-[600px] h-[800px] transition-colors duration-300 mx-auto my-auto`}
     >
       <CardHeader className="flex justify-between items-center">
-        <CardTitle>Chat</CardTitle>
+        <CardTitle>{title || "Chat"}</CardTitle>
         <div className="flex justify-center w-full">
           <Popover>
             <PopoverTrigger asChild>
