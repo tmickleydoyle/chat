@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef, useEffect } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
@@ -47,9 +53,15 @@ const sampleMessages: Message[] = [
   },
 ];
 
-export function AiChatbot({ title, finetune }: AiChatbotProps) {
+export const AiChatbot = forwardRef<
+  { handleSendMessage: () => Promise<void> },
+  AiChatbotProps & {
+    sharedInput: string;
+    onInputChange: (value: string) => void;
+    onSendMessage: () => void;
+  }
+>(({ title, finetune, sharedInput, onInputChange, onSendMessage }, ref) => {
   const [messages, setMessages] = useState<Message[]>(sampleMessages);
-  const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [thumbsDownCount, setThumbsDownCount] = useState(0);
   const [isPoorConversation, setIsPoorConversation] = useState(false);
@@ -87,20 +99,26 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
     }
   }, [thumbsDownCount, isPoorConversation]);
 
+  useImperativeHandle(ref, () => ({
+    handleSendMessage: async () => {
+      await handleSendMessage();
+    },
+  }));
+
   const handleSendMessage = async () => {
-    if (input.trim() === "") return;
+    if (sharedInput.trim() === "") return;
 
     const userMessage: Message = {
       role: "user",
-      content: input,
+      content: sharedInput,
       timestamp: new Date(),
     };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
-    setInput("");
+    onInputChange(""); // Clear the input after sending
     setIsTyping(true);
 
     try {
-      const formattedMessages = formatMessages(messages, input);
+      const formattedMessages = formatMessages(messages, sharedInput);
       const response = await fetch(
         finetune ? "/api/chat" : "/api/chat-original",
         {
@@ -128,6 +146,8 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
         description: "Failed to fetch bot response.",
         variant: "destructive",
       });
+
+      AiChatbot.displayName = "AiChatbot";
     } finally {
       setIsTyping(false);
     }
@@ -305,7 +325,7 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleSendMessage();
+            onSendMessage();
           }}
           className="flex w-full items-center space-x-2"
         >
@@ -314,8 +334,8 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
               ref={inputRef}
               className="flex w-full"
               placeholder="Type your message..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              value={sharedInput}
+              onChange={(e) => onInputChange(e.target.value)}
               onClick={handleInputFocus}
             />
           </div>
@@ -327,4 +347,4 @@ export function AiChatbot({ title, finetune }: AiChatbotProps) {
       </CardFooter>
     </Card>
   );
-}
+});
