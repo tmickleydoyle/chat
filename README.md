@@ -2,7 +2,7 @@
 
 This is a React component for an AI chatbot interface with various features and customization options.
 
-![Screenshot 2024-11-14 at 12 22 31](https://github.com/user-attachments/assets/c614bc14-0e5c-4871-8aa5-31a481422ab0)
+![image](https://github.com/user-attachments/assets/73997737-e287-4c2e-b535-161c25cd24a9)
 
 ## Features
 
